@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div class="container">
+            <div class="app-header">
+
+                <div>
+                    <h1>Invoice Generator</h1>
+                    <p>Create professional invoices easily.</p>
+                </div>
+
+                <a href="/history.html" class="history-link">
+                    Invoice History
+                </a>
+
+            </div>
+
+            <form>
+
+                <h2>Business Information</h2>
+
+                <input type="text" id="businessName" placeholder="Business Name">
+                <input type="email" id="businessEmail" placeholder="Business Email">
+                <input type="text" id="businessPhone" placeholder="Business Phone">
+                <textarea id="businessAddress" placeholder="Business Address"></textarea>
+
+                <h2>Customer Information</h2>
+
+                <input type="text" id="customerName" placeholder="Customer Name">
+                <input type="email" id="customerEmail" placeholder="Customer Email">
+                <textarea id="customerAddress" placeholder="Customer Address"></textarea>
+
+                <h2>Payment Information</h2>
+
+                <input
+                    type="text"
+                    id="bankName"
+                    placeholder="Bank Name"
+                >
+
+                <input
+                    type="text"
+                    id="accountName"
+                    placeholder="Account Name"
+                >
+
+                <input
+                    type="text"
+                    id="accountNumber"
+                    placeholder="Account Number"
+                >
+
+                <h2>Additional Information</h2>
+
+                    <textarea
+                        id="invoiceNotes"
+                        placeholder="Notes (e.g. Thank you for your business.)"
+                    ></textarea>
+
+                    <textarea
+                        id="invoiceTerms"
+                        placeholder="Terms & Conditions"
+                    ></textarea>
+
+                <h2>Invoice Details</h2>
+
+                <input type="text" id="invoiceNumber" placeholder="Invoice Number">
+
+                <label>Invoice Date</label>
+                <input type="date" id="invoiceDate">
+
+                <label>Due Date</label>
+                <input type="date" id="dueDate">
+
+                <h2>Items</h2>
+
+                <div class="item">
+                    <input 
+                    type="text"
+                    placeholder="Item / Service"
+                    >
+
+                    <input
+                        type="number"
+                        placeholder="Quantity"
+                        min="1"
+                        value="1"
+                        class="quantity"
+                    >
+
+                    <input
+                        type="number"
+                        placeholder="Price"
+                        min="0"
+                        class="price"
+                    >
+                    
+                    <span class="item-total">₦0.00</span>
+
+                    <button 
+                        type="button"
+                        class="remove-item"
+                        >
+                        
+                            Remove
+                    </button>
+                </div>
+
+               
+
+                <button type="button" id="addItem">
+                  + Add Item
+                </button>
+
+                <h2>Total</h2>
+
+                <p>Subtotal: <span id="subtotal">₦0.00</span></p>
+
+                <label for="taxRate">Tax (%)</label>
+
+                <input
+                    type="number"
+                    id="taxRate"
+                    placeholder="0"
+                    min="0"
+                    value="0"
+                >
+
+                <p>Tax: <span id="tax"> ₦0.00 </span></p>
+
+                <h3>
+                    Total: <span id="grandTotal">₦0.00</span>
+                </h3>
+
+                <button type="submit">
+                    Generate Invoice
+                </button>
+
+                <button
+                    type="button"
+                    id="downloadPDF"
+                >
+                    Download PDF
+                </button>
+
+                <button
+                    type="button"
+                    id="saveInvoice"
+                >
+                    Save Invoice
+                </button>
+
+                <a href="/history.html">
+                    View Invoice History
+                </a>
+                <div id="invoicePreview">
+
+                    <div class="invoice-header">
+
+                        <div>
+                            <h2 id="previewBusinessName">Business Name</h2>
+                            <p id="previewBusinessEmail">business@email.com</p>
+                            <p id="previewBusinessPhone">0800 000 0000</p>
+                            <p id="previewBusinessAddress">Business Address</p>
+                        </div>
+
+                        <div>
+                            <h1>Invoice</h1>
+                            <p>Invoice #: <span id="previewInvoiceNumber">---</span></p>
+                            <p>Date: <span id="previewInvoiceDate">---</span></p>
+                            <p>Due: <span id="previewDueDate">---</span></p>
+                        </div>
+
+                    </div>
+
+                    <div class="customer-section">
+                        <h3>BILL TO</h3>
+
+                        <p id="previewCustomerName">Customer Name</p>
+                        <p id="previewCustomerEmail">customer@email.com</p>
+                        <p id="previewCustomerAddress">Customer Address</p>
+                    </div>
+
+                    <div class="payment-section">
+
+                        <h3>PAYMENT INFORMATION</h3>
+
+                        <p>
+                            Bank:
+                            <span id="previewBankName">---</span>
+                        </p>
+
+                        <p>
+                            Account Name:
+                            <span id="previewAccountName">---</span>
+                        </p>
+
+                        <p>
+                            Account Number:
+                            <span id="previewAccountNumber">---</span>
+                        </p>
+
+                    </div>
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>Item / Service</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="previewItems">
+                        </tbody>
+
+                    </table>
+
+                                 <div class="invoice-summary">
+                        <p>
+                            Subtotal:
+                            <span id="previewSubtotal">₦0.00</span>
+                        </p>
+
+                        <p>
+                            Tax:
+                            <span id="previewTax">₦0.00</span>
+                        </p>
+
+                        <h3>
+                            Total:
+                            <span id="previewGrandTotal">₦0.00</span>
+                        </h3>
+                    </div>
+
+                    <div class="invoice-notes">
+
+                        <div>
+                            <h3>NOTES</h3>
+                            <p id="previewInvoiceNotes">---</p>
+                        </div>
+
+                        <div>
+                            <h3>TERMS & CONDITIONS</h3>
+                            <p id="previewInvoiceTerms">---</p>
+                        </div>
+
+                    </div>
+
+                </div>
+            </form>
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="script.js"></script>
+
+</body>
+</html>
