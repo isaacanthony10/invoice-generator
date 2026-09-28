@@ -4,268 +4,204 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Generator</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
-    <div class="container">
-            <div class="app-header">
 
-                <div>
-                    <h1>Invoice Generator</h1>
-                    <p>Create professional invoices easily.</p>
+    <div class="app-viewport">
+        <div class="app-card">
+            
+            <!-- LEFT MAIN FORM SHEET -->
+            <div class="form-sheet">
+                
+                <!-- TOP LOGO UPLOAD ICON -->
+                <div class="logo-upload-wrapper">
+                    <label for="logoInput" class="logo-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M175 12a5 5 0 0 0-8.5-3.5A7 7 0 1 0 5 16h12a5 5 0 0 0 0-10z"></path>
+                            <polyline points="16 16 12 12 8 16"></polyline>
+                            <line x1="12" y1="12" x2="12" y2="21"></line>
+                        </svg>
+                    </label>
+                    <input type="file" id="logoInput" accept="image/*" style="display: none;">
                 </div>
 
-                <a href="/history.html" class="history-link">
-                    Invoice History
-                </a>
+                <form id="invoiceForm">
+                    <!-- TOP METADATA ROW -->
+                    <div class="meta-header-row">
+                        <div class="meta-item">
+                            <span class="meta-label">Date:</span>
+                            <input type="text" id="invoiceDate" value="03/14/2026">
+                        </div>
+                        <div class="invoice-title-block">
+                            <input type="text" id="invoiceNumber" class="invoice-num-input" value="Invoice #001">
+                        </div>
+                        <div class="meta-item text-right">
+                            <span class="meta-label">Due date:</span>
+                            <input type="text" id="dueDate" placeholder="Select date...">
+                        </div>
+                    </div>
 
+                    <!-- BILL FROM / BILL TO -->
+                    <div class="bill-columns">
+                        <div class="bill-col">
+                            <h4>Bill from</h4>
+                            <input type="email" id="businessEmail" placeholder="Email" class="light-input">
+                            <textarea id="businessName" placeholder="Who is this invoice from?" class="light-input area-sm"></textarea>
+                        </div>
+                        <div class="bill-col">
+                            <h4>Bill to</h4>
+                            <input type="email" id="customerEmail" placeholder="Email" class="light-input">
+                            <textarea id="customerName" placeholder="Who is this invoice to?" class="light-input area-sm"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- TABLE HEADERS -->
+                    <div class="items-table">
+                        <div class="table-head">
+                            <span class="col-item">ITEM</span>
+                            <span class="col-qty">QTY</span>
+                            <span class="col-rate">RATE</span>
+                            <span class="col-total">TOTAL</span>
+                            <span class="col-action">ACTION</span>
+                        </div>
+
+                        <!-- DYNAMIC ITEMS CONTAINER -->
+                        <div id="itemsContainer"></div>
+
+                        <button type="button" id="addItem" class="btn-add-item">+ Add item</button>
+                    </div>
+
+                    <!-- CALCULATION SUMMARY -->
+                    <div class="totals-summary">
+                        <div class="summary-line">
+                            <span class="summary-label">Subtotal</span>
+                            <span id="subtotal" class="summary-val">$0.00</span>
+                        </div>
+                        <div class="summary-line link-line">
+                            <button type="button" class="btn-text-link" id="toggleDiscountBtn">+ Add discount</button>
+                        </div>
+                        <div class="summary-line link-line">
+                            <button type="button" class="btn-text-link" id="toggleTaxBtn">+ Add tax</button>
+                        </div>
+                        <div class="summary-line tax-input-row" id="taxRow" style="display:none;">
+                            <span class="summary-label">Tax (%)</span>
+                            <input type="number" id="taxRate" value="0" class="mini-num-input">
+                        </div>
+                        <div class="summary-line total-line">
+                            <strong>Total</strong>
+                            <strong id="grandTotal" class="summary-val">$0.00</strong>
+                        </div>
+                    </div>
+
+                    <!-- NOTES -->
+                    <div class="notes-block">
+                        <h4>Notes</h4>
+                        <textarea id="invoiceNotes" class="light-input" placeholder="Thanks for your business!"></textarea>
+                    </div>
+                </form>
             </div>
 
-            <form>
-
-                <h2>Business Information</h2>
-
-                <input type="text" id="businessName" placeholder="Business Name">
-                <input type="email" id="businessEmail" placeholder="Business Email">
-                <input type="text" id="businessPhone" placeholder="Business Phone">
-                <textarea id="businessAddress" placeholder="Business Address"></textarea>
-
-                <h2>Customer Information</h2>
-
-                <input type="text" id="customerName" placeholder="Customer Name">
-                <input type="email" id="customerEmail" placeholder="Customer Email">
-                <textarea id="customerAddress" placeholder="Customer Address"></textarea>
-
-                <h2>Payment Information</h2>
-
-                <input
-                    type="text"
-                    id="bankName"
-                    placeholder="Bank Name"
-                >
-
-                <input
-                    type="text"
-                    id="accountName"
-                    placeholder="Account Name"
-                >
-
-                <input
-                    type="text"
-                    id="accountNumber"
-                    placeholder="Account Number"
-                >
-
-                <h2>Additional Information</h2>
-
-                    <textarea
-                        id="invoiceNotes"
-                        placeholder="Notes (e.g. Thank you for your business.)"
-                    ></textarea>
-
-                    <textarea
-                        id="invoiceTerms"
-                        placeholder="Terms & Conditions"
-                    ></textarea>
-
-                <h2>Invoice Details</h2>
-
-                <input type="text" id="invoiceNumber" placeholder="Invoice Number">
-
-                <label>Invoice Date</label>
-                <input type="date" id="invoiceDate">
-
-                <label>Due Date</label>
-                <input type="date" id="dueDate">
-
-                <h2>Items</h2>
-
-                <div class="item">
-                    <input 
-                    type="text"
-                    placeholder="Item / Service"
-                    >
-
-                    <input
-                        type="number"
-                        placeholder="Quantity"
-                        min="1"
-                        value="1"
-                        class="quantity"
-                    >
-
-                    <input
-                        type="number"
-                        placeholder="Price"
-                        min="0"
-                        class="price"
-                    >
-                    
-                    <span class="item-total">₦0.00</span>
-
-                    <button 
-                        type="button"
-                        class="remove-item"
-                        >
-                        
-                            Remove
+            <!-- RIGHT SIDEBAR PANEL -->
+            <div class="sidebar-panel">
+                <div class="top-actions">
+                    <button type="button" class="btn-blue-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        Send Invoice
                     </button>
+                    <div class="btn-row-dual">
+                        <button type="submit" form="invoiceForm" class="btn-white-secondary">Preview</button>
+                        <button type="button" id="downloadPDF" class="btn-white-secondary">Download</button>
+                    </div>
                 </div>
 
-               
-
-                <button type="button" id="addItem">
-                  + Add Item
-                </button>
-
-                <h2>Total</h2>
-
-                <p>Subtotal: <span id="subtotal">₦0.00</span></p>
-
-                <label for="taxRate">Tax (%)</label>
-
-                <input
-                    type="number"
-                    id="taxRate"
-                    placeholder="0"
-                    min="0"
-                    value="0"
-                >
-
-                <p>Tax: <span id="tax"> ₦0.00 </span></p>
-
-                <h3>
-                    Total: <span id="grandTotal">₦0.00</span>
-                </h3>
-
-                <button type="submit">
-                    Generate Invoice
-                </button>
-
-                <button
-                    type="button"
-                    id="downloadPDF"
-                >
-                    Download PDF
-                </button>
-
-                <button
-                    type="button"
-                    id="saveInvoice"
-                >
-                    Save Invoice
-                </button>
-
-                <a href="/history.html">
-                    View Invoice History
-                </a>
-                <div id="invoicePreview">
-
-                    <div class="invoice-header">
-
-                        <div>
-                            <h2 id="previewBusinessName">Business Name</h2>
-                            <p id="previewBusinessEmail">business@email.com</p>
-                            <p id="previewBusinessPhone">0800 000 0000</p>
-                            <p id="previewBusinessAddress">Business Address</p>
-                        </div>
-
-                        <div>
-                            <h1>Invoice</h1>
-                            <p>Invoice #: <span id="previewInvoiceNumber">---</span></p>
-                            <p>Date: <span id="previewInvoiceDate">---</span></p>
-                            <p>Due: <span id="previewDueDate">---</span></p>
-                        </div>
-
+                <div class="sidebar-group">
+                    <label class="sidebar-label">Currency</label>
+                    <div class="select-wrapper">
+                        <select id="currencySelect" class="sidebar-select">
+                            <option value="USD" data-symbol="$">🇺🇸 USD (United States Dollar)</option>
+                            <option value="NGN" data-symbol="₦">🇳🇬 NGN (Nigerian Naira)</option>
+                            <option value="EUR" data-symbol="€">🇪🇺 EUR (Euro)</option>
+                            <option value="GBP" data-symbol="£">🇬🇧 GBP (British Pound)</option>
+                        </select>
                     </div>
-
-                    <div class="customer-section">
-                        <h3>BILL TO</h3>
-
-                        <p id="previewCustomerName">Customer Name</p>
-                        <p id="previewCustomerEmail">customer@email.com</p>
-                        <p id="previewCustomerAddress">Customer Address</p>
-                    </div>
-
-                    <div class="payment-section">
-
-                        <h3>PAYMENT INFORMATION</h3>
-
-                        <p>
-                            Bank:
-                            <span id="previewBankName">---</span>
-                        </p>
-
-                        <p>
-                            Account Name:
-                            <span id="previewAccountName">---</span>
-                        </p>
-
-                        <p>
-                            Account Number:
-                            <span id="previewAccountNumber">---</span>
-                        </p>
-
-                    </div>
-
-                    <table>
-
-                        <thead>
-                            <tr>
-                                <th>Item / Service</th>
-                                <th>Qty</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-
-                        <tbody id="previewItems">
-                        </tbody>
-
-                    </table>
-
-                                 <div class="invoice-summary">
-                        <p>
-                            Subtotal:
-                            <span id="previewSubtotal">₦0.00</span>
-                        </p>
-
-                        <p>
-                            Tax:
-                            <span id="previewTax">₦0.00</span>
-                        </p>
-
-                        <h3>
-                            Total:
-                            <span id="previewGrandTotal">₦0.00</span>
-                        </h3>
-                    </div>
-
-                    <div class="invoice-notes">
-
-                        <div>
-                            <h3>NOTES</h3>
-                            <p id="previewInvoiceNotes">---</p>
-                        </div>
-
-                        <div>
-                            <h3>TERMS & CONDITIONS</h3>
-                            <p id="previewInvoiceTerms">---</p>
-                        </div>
-
-                    </div>
-
                 </div>
-            </form>
+
+                <div class="toggle-list">
+                    <div class="toggle-item">
+                        <span>Payment method</span>
+                        <label class="switch">
+                            <input type="checkbox" id="togglePayment">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-item">
+                        <span>Late fees</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggleLateFees">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-item">
+                        <span>Notes</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggleNotes" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- PREVIEW AREA (RENDERED ON PREVIEW/SUBMIT) -->
+    <div id="invoicePreview" class="document-preview-wrap">
+        <div class="document-sheet">
+            <div class="doc-header">
+                <h1>INVOICE</h1>
+                <p id="previewServiceHeader">Professional Design Services</p>
+            </div>
+
+            <div class="doc-info-grid">
+                <div class="doc-info-box">
+                    <div class="doc-box-title">Invoice To</div>
+                    <div class="doc-box-content" id="previewCustomerName">Customer Name</div>
+                </div>
+                <div class="doc-info-box">
+                    <div class="doc-box-title">Invoice Details</div>
+                    <div class="doc-box-content">
+                        <p><strong>Invoice No.:</strong> <span id="previewInvoiceNumber">#001</span></p>
+                        <p><strong>Date:</strong> <span id="previewInvoiceDate">03/14/2026</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3>Service Description</h3>
+                <table class="doc-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewItems"></tbody>
+                </table>
+                <div class="doc-table-total">
+                    <strong>Total: <span id="previewGrandTotal">$0.00</span></strong>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3>Notes</h3>
+                <div id="previewInvoiceNotes" class="doc-notes-list">Thanks for your business!</div>
+            </div>
+        </div>
     </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <script src="script.js"></script>
-
 </body>
 </html>
