@@ -18,26 +18,61 @@ const toggleDiscountBtn = document.querySelector("#toggleDiscountBtn");
 const discountRow = document.querySelector("#discountRow");
 
 let activeSymbol = "$";
+let activeRate = 1; // Base rate in USD
 
 // ======================================================
-// WORLD CURRENCIES LIST
+// CUSTOM LOGO UPLOAD & PERSISTENCE
+// ======================================================
+
+const logoInput = document.querySelector("#logoInput");
+const defaultLogoIcon = document.querySelector("#defaultLogoIcon");
+const uploadedLogoImg = document.querySelector("#uploadedLogoImg");
+const previewLogoImg = document.querySelector("#previewLogoImg");
+
+function applySavedLogo(dataUrl) {
+    if (!dataUrl) return;
+    defaultLogoIcon.style.display = "none";
+    uploadedLogoImg.src = dataUrl;
+    uploadedLogoImg.style.display = "block";
+    previewLogoImg.src = dataUrl;
+    previewLogoImg.style.display = "block";
+}
+
+const savedLogo = localStorage.getItem("customBusinessLogo");
+if (savedLogo) applySavedLogo(savedLogo);
+
+logoInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const base64Logo = event.target.result;
+        localStorage.setItem("customBusinessLogo", base64Logo);
+        applySavedLogo(base64Logo);
+    };
+    reader.readAsDataURL(file);
+});
+
+// ======================================================
+// WORLD CURRENCIES LIST (WITH EXCHANGE RATES RELATIVE TO USD)
 // ======================================================
 
 const worldCurrencies = [
-    { code: "USD", symbol: "$", name: "USD ($)" },
-    { code: "NGN", symbol: "₦", name: "NGN (₦)" },
-    { code: "EUR", symbol: "€", name: "EUR (€)" },
-    { code: "GBP", symbol: "£", name: "GBP (£)" },
-    { code: "CAD", symbol: "CA$", name: "CAD (CA$)" },
-    { code: "AUD", symbol: "A$", name: "AUD (A$)" },
-    { code: "JPY", symbol: "¥", name: "JPY (¥)" },
-    { code: "INR", symbol: "₹", name: "INR (₹)" },
-    { code: "CNY", symbol: "¥", name: "CNY (¥)" },
-    { code: "ZAR", symbol: "R", name: "ZAR (R)" },
-    { code: "GHS", symbol: "GH₵", name: "GHS (GH₵)" },
-    { code: "KES", symbol: "KSh", name: "KES (KSh)" },
-    { code: "AED", symbol: "AED", name: "AED" },
-    { code: "SAR", symbol: "SR", name: "SAR (SR)" }
+    { code: "USD", symbol: "$", name: "USD ($)", rate: 1 },
+    { code: "NGN", symbol: "₦", name: "NGN (₦)", rate: 1600 },
+    { code: "EUR", symbol: "€", name: "EUR (€)", rate: 0.92 },
+    { code: "GBP", symbol: "£", name: "GBP (£)", rate: 0.79 },
+    { code: "CAD", symbol: "CA$", name: "CAD (CA$)", rate: 1.38 },
+    { code: "AUD", symbol: "A$", name: "AUD (A$)", rate: 1.52 },
+    { code: "JPY", symbol: "¥", name: "JPY (¥)", rate: 154 },
+    { code: "INR", symbol: "₹", name: "INR (₹)", rate: 84 },
+    { code: "CNY", symbol: "¥", name: "CNY (¥)", rate: 7.24 },
+    { code: "ZAR", symbol: "R", name: "ZAR (R)", rate: 18.1 },
+    { code: "GHS", symbol: "GH₵", name: "GHS (GH₵)", rate: 16.2 },
+    { code: "KES", symbol: "KSh", name: "KES (KSh)", rate: 129 },
+    { code: "AED", symbol: "AED", name: "AED", rate: 3.67 },
+    { code: "SAR", symbol: "SR", name: "SAR (SR)", rate: 3.75 }
 ];
 
 function populateCurrencies() {
@@ -46,6 +81,7 @@ function populateCurrencies() {
         const opt = document.createElement("option");
         opt.value = c.code;
         opt.setAttribute("data-symbol", c.symbol);
+        opt.setAttribute("data-rate", c.rate);
         opt.textContent = c.name;
         currencySelect.appendChild(opt);
     });
@@ -57,13 +93,26 @@ populateCurrencies();
 document.querySelector("#invoiceDate").valueAsDate = new Date();
 
 // ======================================================
-// CURRENCY CHANGE EVENT
+// CURRENCY CHANGE & AUTOMATIC PRICE CONVERSION
 // ======================================================
 
 currencySelect.addEventListener("change", (e) => {
     const selectedOption = e.target.options[e.target.selectedIndex];
-    activeSymbol = selectedOption.getAttribute("data-symbol");
-    
+    const newSymbol = selectedOption.getAttribute("data-symbol");
+    const newRate = Number(selectedOption.getAttribute("data-rate")) || 1;
+
+    document.querySelectorAll(".item-price").forEach(input => {
+        const currentVal = parseFloat(input.value);
+        if (!isNaN(currentVal) && currentVal > 0) {
+            const amountInUSD = currentVal / activeRate;
+            const convertedAmount = amountInUSD * newRate;
+            input.value = Number(convertedAmount.toFixed(2));
+        }
+    });
+
+    activeSymbol = newSymbol;
+    activeRate = newRate;
+
     document.querySelectorAll(".curr-symbol").forEach(el => {
         el.textContent = activeSymbol;
     });
@@ -79,12 +128,14 @@ function formatMoney(amount) {
 }
 
 // ======================================================
-// DYNAMIC ITEM ROWS
+// DYNAMIC ITEM ROWS (NO DEFAULT '0' IN PRICE INPUT)
 // ======================================================
 
-function createItemRow(name = "", qty = 1, price = 0) {
+function createItemRow(name = "", qty = 1, price = "") {
     const row = document.createElement("div");
     row.className = "item-row";
+    const numericPrice = Number(price) || 0;
+
     row.innerHTML = `
         <div>
             <input type="text" class="item-name light-input" placeholder="Item name / Description" value="${name}" style="margin:0;">
@@ -96,7 +147,7 @@ function createItemRow(name = "", qty = 1, price = 0) {
             <span class="curr-symbol">${activeSymbol}</span>
             <input type="number" class="item-price" min="0" step="0.01" placeholder="0.00" value="${price}">
         </div>
-        <div class="total-val-box item-total">${formatMoney(qty * price)}</div>
+        <div class="total-val-box item-total">${formatMoney(qty * numericPrice)}</div>
         <div style="text-align: center;">
             <button type="button" class="btn-remove-dots remove-item">&times;</button>
         </div>
@@ -185,14 +236,12 @@ function renderInvoicePreview() {
         return false;
     }
 
-    // Fill preview values
     document.querySelector("#previewCustomerName").textContent = customerName;
     document.querySelector("#previewCustomerEmail").textContent = document.querySelector("#customerEmail").value;
     document.querySelector("#previewInvoiceNumber").textContent = document.querySelector("#invoiceNumber").value;
     document.querySelector("#previewInvoiceDate").textContent = document.querySelector("#invoiceDate").value;
     document.querySelector("#previewDueDate").textContent = document.querySelector("#dueDate").value || "N/A";
 
-    // Items preview
     const previewItems = document.querySelector("#previewItems");
     previewItems.innerHTML = "";
     document.querySelectorAll(".item-row").forEach(row => {
@@ -211,11 +260,9 @@ function renderInvoicePreview() {
         previewItems.appendChild(tr);
     });
 
-    // Totals
     document.querySelector("#previewSubtotal").textContent = document.querySelector("#subtotal").textContent;
     document.querySelector("#previewGrandTotal").textContent = document.querySelector("#grandTotal").textContent;
 
-    // PAYMENT TERMS & DEPOSIT CALCULATION
     const previewPaymentSection = document.querySelector("#previewPaymentSection");
     if (togglePayment.checked) {
         previewPaymentSection.style.display = "block";
@@ -240,7 +287,6 @@ function renderInvoicePreview() {
         previewPaymentSection.style.display = "none";
     }
 
-    // Late Fees Section
     const previewLateFeesSection = document.querySelector("#previewLateFeesSection");
     if (toggleLateFees.checked) {
         previewLateFeesSection.style.display = "block";
@@ -249,7 +295,6 @@ function renderInvoicePreview() {
         previewLateFeesSection.style.display = "none";
     }
 
-    // Notes Section
     const previewNotesSection = document.querySelector("#previewNotesSection");
     if (toggleNotes.checked) {
         previewNotesSection.style.display = "block";

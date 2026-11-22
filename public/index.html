@@ -14,11 +14,19 @@
             <!-- LEFT MAIN FORM SHEET -->
             <div class="form-sheet">
                 
-                <!-- TOP BRAND LOGO ICON -->
+                <!-- TOP BRAND LOGO ICON (CLICKABLE TO UPLOAD CUSTOM LOGO) -->
                 <div class="logo-upload-wrapper">
-                    <div class="logo-circle">
-                        <img id="brandLogo" src="https://api.iconify.design/lucide:file-text.svg?color=%231d61e8" alt="Logo" width="24" height="24">
-                    </div>
+                    <label for="logoInput" class="logo-circle" title="Click to upload your logo">
+                        <svg id="defaultLogoIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d61e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <img id="uploadedLogoImg" src="" alt="Brand Logo" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                    </label>
+                    <input type="file" id="logoInput" accept="image/*" style="display:none;">
                 </div>
 
                 <form id="invoiceForm">
@@ -173,9 +181,12 @@
     <!-- PREVIEW AREA -->
     <div id="invoicePreview" class="document-preview-wrap">
         <div class="document-sheet">
-            <div class="doc-header">
-                <h1>INVOICE</h1>
-                <p id="previewServiceHeader">Official Payment Invoice</p>
+            <div class="doc-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>INVOICE</h1>
+                    <p id="previewServiceHeader">Official Payment Invoice</p>
+                </div>
+                <img id="previewLogoImg" src="" alt="Business Logo" style="display:none; max-height: 55px; max-width: 140px; object-fit: contain;">
             </div>
 
             <div class="doc-info-grid">

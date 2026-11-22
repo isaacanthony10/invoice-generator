@@ -38,21 +38,29 @@ body {
 /* CIRCLE BRAND LOGO ICON */
 .logo-upload-wrapper {
     position: absolute;
-    top: -20px;
+    top: -24px;
     left: 50%;
     transform: translateX(-50%);
 }
 
 .logo-circle {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     background: #ffffff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    border: 1px solid #f1f5f9;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.logo-circle:hover {
+    transform: scale(1.06);
+    border-color: #1d61e8;
 }
 
 /* TOP META ROW */
