@@ -22,25 +22,166 @@ let activeSymbol = "$";
 let activeRate = 1; // Base rate in USD
 
 // ======================================================
-// CUSTOM LOGO UPLOAD & PERSISTENCE
+// NUMBER / COMMA FORMATTING HELPERS
+// ======================================================
+
+function parseNumericValue(val) {
+    if (val === null || val === undefined || val === "") return 0;
+    const cleaned = String(val).replace(/,/g, "");
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+}
+
+function formatInputWithCommas(rawValue) {
+    let cleaned = String(rawValue).replace(/[^0-9.]/g, "");
+    if (!cleaned) return "";
+
+    const parts = cleaned.split(".");
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? "." + parts.slice(1).join("") : "";
+
+    const formattedInt = integerPart ? Number(integerPart).toLocaleString("en-US") : "0";
+    return formattedInt + decimalPart;
+}
+
+// ======================================================
+// SECRET CODE ACCESS GATE (TWO-STEP AUTOMATIC DETECTION)
+// ======================================================
+
+let currentSecretCode = "";
+let pendingNewCode = null; // Holds new PIN awaiting confirmation
+
+const accessGateOverlay = document.querySelector("#accessGateOverlay");
+const accessGateCard = document.querySelector(".access-gate-card");
+const accessGateForm = document.querySelector("#accessGateForm");
+const secretCodeInput = document.querySelector("#secretCodeInput");
+const confirmCodeInput = document.querySelector("#confirmCodeInput");
+const gateTitle = document.querySelector("#gateTitle");
+const gateSubtitle = document.querySelector("#gateSubtitle");
+const gateSubmitBtn = document.querySelector("#gateSubmitBtn");
+const gateErrorMsg = document.querySelector("#gateErrorMsg");
+const skipGateBtn = document.querySelector("#skipGateBtn");
+const backToPinBtn = document.querySelector("#backToPinBtn");
+
+function triggerShakeError(message) {
+    gateErrorMsg.textContent = message;
+    gateErrorMsg.style.display = "block";
+    accessGateCard.classList.remove("shake-card");
+    void accessGateCard.offsetWidth;
+    accessGateCard.classList.add("shake-card");
+}
+
+function resetGateToStepOne() {
+    pendingNewCode = null;
+    gateTitle.textContent = "Enter Secret PIN";
+    gateSubtitle.textContent = "Input your personal secret code (min 4 characters) to open your workspace or create a new one.";
+    secretCodeInput.value = "";
+    secretCodeInput.disabled = false;
+    confirmCodeInput.value = "";
+    confirmCodeInput.style.display = "none";
+    confirmCodeInput.required = false;
+    gateSubmitBtn.textContent = "Continue";
+    backToPinBtn.style.display = "none";
+    gateErrorMsg.style.display = "none";
+    secretCodeInput.focus();
+}
+
+backToPinBtn.addEventListener("click", resetGateToStepOne);
+
+skipGateBtn.addEventListener("click", () => {
+    const msg = pendingNewCode
+        ? "Access Required: Please confirm your new PIN to create your workspace."
+        : "Access Required: You cannot skip this step. Please enter or create a secret PIN (min 4 characters) to continue.";
+    triggerShakeError(msg);
+    (pendingNewCode ? confirmCodeInput : secretCodeInput).focus();
+});
+
+accessGateForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // STEP 2: Confirming a brand-new PIN
+    if (pendingNewCode) {
+        const confirmedVal = confirmCodeInput.value.trim().toLowerCase();
+        if (confirmedVal !== pendingNewCode) {
+            triggerShakeError("PINs do not match. Re-enter the exact same secret PIN to confirm.");
+            confirmCodeInput.focus();
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: pendingNewCode })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                triggerShakeError(data.error || "Could not create PIN.");
+                return;
+            }
+
+            currentSecretCode = data.code;
+            gateErrorMsg.style.display = "none";
+            accessGateOverlay.style.display = "none";
+        } catch (err) {
+            triggerShakeError("Unable to connect to server. Please try again.");
+        }
+        return;
+    }
+
+    // STEP 1: Check whether entered code belongs to an old user or a new user
+    const enteredCode = secretCodeInput.value.trim();
+    if (enteredCode.length < 4) {
+        triggerShakeError("Your secret PIN must be at least 4 characters long.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/auth/check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: enteredCode })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            triggerShakeError(data.error || "Invalid secret PIN.");
+            return;
+        }
+
+        // Old user -> unlock immediately
+        if (data.status === "existing") {
+            currentSecretCode = data.code;
+            gateErrorMsg.style.display = "none";
+            accessGateOverlay.style.display = "none";
+            return;
+        }
+
+        // New user -> prompt to confirm creating a new PIN
+        pendingNewCode = data.code;
+        gateTitle.textContent = "Create New Secret PIN";
+        gateSubtitle.textContent = "This code is not registered yet. Re-enter it below to confirm and create your new workspace.";
+        secretCodeInput.disabled = true;
+        confirmCodeInput.style.display = "block";
+        confirmCodeInput.required = true;
+        gateSubmitBtn.textContent = "Create PIN & Unlock";
+        backToPinBtn.style.display = "inline-block";
+        gateErrorMsg.style.display = "none";
+        confirmCodeInput.focus();
+    } catch (err) {
+        triggerShakeError("Unable to connect to server. Please try again.");
+    }
+});
+
+// ======================================================
+// CUSTOM LOGO UPLOAD (CLEARS ON PAGE REFRESH)
 // ======================================================
 
 const logoInput = document.querySelector("#logoInput");
 const defaultLogoIcon = document.querySelector("#defaultLogoIcon");
 const uploadedLogoImg = document.querySelector("#uploadedLogoImg");
 const previewLogoImg = document.querySelector("#previewLogoImg");
-
-function applySavedLogo(dataUrl) {
-    if (!dataUrl) return;
-    defaultLogoIcon.style.display = "none";
-    uploadedLogoImg.src = dataUrl;
-    uploadedLogoImg.style.display = "block";
-    previewLogoImg.src = dataUrl;
-    previewLogoImg.style.display = "block";
-}
-
-const savedLogo = localStorage.getItem("customBusinessLogo");
-if (savedLogo) applySavedLogo(savedLogo);
 
 logoInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -49,8 +190,11 @@ logoInput.addEventListener("change", (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
         const base64Logo = event.target.result;
-        localStorage.setItem("customBusinessLogo", base64Logo);
-        applySavedLogo(base64Logo);
+        defaultLogoIcon.style.display = "none";
+        uploadedLogoImg.src = base64Logo;
+        uploadedLogoImg.style.display = "block";
+        previewLogoImg.src = base64Logo;
+        previewLogoImg.style.display = "block";
     };
     reader.readAsDataURL(file);
 });
@@ -97,26 +241,27 @@ populateCurrencies();
 document.querySelector("#invoiceDate").valueAsDate = new Date();
 
 // ======================================================
-// CURRENCY CHANGE & AUTOMATIC PRICE CONVERSION (DESKTOP + MOBILE)
+// CURRENCY CHANGE & AUTOMATIC PRICE CONVERSION
 // ======================================================
 
-function handleCurrencyChange(e) {
-    const selectedOption = e.target.options[e.target.selectedIndex];
-    const newCode = selectedOption.value;
-    const newSymbol = selectedOption.getAttribute("data-symbol");
-    const newRate = Number(selectedOption.getAttribute("data-rate")) || 1;
+function setCurrencyByCode(newCode, convertAmounts = true) {
+    const currencyObj = worldCurrencies.find(c => c.code === newCode) || worldCurrencies[0];
+    const newSymbol = currencyObj.symbol;
+    const newRate = currencyObj.rate;
 
     if (currencySelect) currencySelect.value = newCode;
     if (mobileCurrencySelect) mobileCurrencySelect.value = newCode;
 
-    document.querySelectorAll(".item-price").forEach(input => {
-        const currentVal = parseFloat(input.value);
-        if (!isNaN(currentVal) && currentVal > 0) {
-            const amountInUSD = currentVal / activeRate;
-            const convertedAmount = amountInUSD * newRate;
-            input.value = Number(convertedAmount.toFixed(2));
-        }
-    });
+    if (convertAmounts) {
+        document.querySelectorAll(".item-price").forEach(input => {
+            const currentVal = parseNumericValue(input.value);
+            if (currentVal > 0) {
+                const amountInUSD = currentVal / activeRate;
+                const convertedAmount = Number((amountInUSD * newRate).toFixed(2));
+                input.value = formatInputWithCommas(convertedAmount);
+            }
+        });
+    }
 
     activeSymbol = newSymbol;
     activeRate = newRate;
@@ -126,6 +271,10 @@ function handleCurrencyChange(e) {
     });
 
     calculateTotals();
+}
+
+function handleCurrencyChange(e) {
+    setCurrencyByCode(e.target.value, true);
 }
 
 currencySelect.addEventListener("change", handleCurrencyChange);
@@ -141,13 +290,14 @@ function formatMoney(amount) {
 }
 
 // ======================================================
-// DYNAMIC ITEM ROWS (NO DEFAULT '0' IN PRICE INPUT)
+// DYNAMIC ITEM ROWS WITH LIVE COMMA FORMATTING
 // ======================================================
 
 function createItemRow(name = "", qty = 1, price = "") {
     const row = document.createElement("div");
     row.className = "item-row";
-    const numericPrice = Number(price) || 0;
+    const numericPrice = parseNumericValue(price);
+    const formattedInitialPrice = price !== "" ? formatInputWithCommas(price) : "";
 
     row.innerHTML = `
         <div>
@@ -158,7 +308,7 @@ function createItemRow(name = "", qty = 1, price = "") {
         </div>
         <div class="rate-input-box">
             <span class="curr-symbol">${activeSymbol}</span>
-            <input type="number" class="item-price" min="0" step="0.01" placeholder="0.00" value="${price}">
+            <input type="text" inputmode="decimal" class="item-price" placeholder="0.00" value="${formattedInitialPrice}">
         </div>
         <div class="total-val-box item-total">${formatMoney(qty * numericPrice)}</div>
         <div style="text-align: center;">
@@ -178,7 +328,14 @@ itemsContainer.addEventListener("click", (e) => {
     }
 });
 
-itemsContainer.addEventListener("input", calculateTotals);
+// Format price input with commas live while typing
+itemsContainer.addEventListener("input", (e) => {
+    if (e.target.classList.contains("item-price")) {
+        e.target.value = formatInputWithCommas(e.target.value);
+    }
+    calculateTotals();
+});
+
 form.addEventListener("input", calculateTotals);
 
 // ======================================================
@@ -191,7 +348,7 @@ function calculateTotals() {
 
     rows.forEach(row => {
         const qty = Number(row.querySelector(".item-qty").value) || 0;
-        const price = Number(row.querySelector(".item-price").value) || 0;
+        const price = parseNumericValue(row.querySelector(".item-price").value);
         const total = qty * price;
         subtotal += total;
         row.querySelector(".item-total").textContent = formatMoney(total);
@@ -239,7 +396,7 @@ toggleDiscountBtn.addEventListener("click", () => {
 createItemRow();
 
 // ======================================================
-// PREVIEW & SAVE LOGIC
+// PREVIEW & SERVER-SIDE SAVE LOGIC
 // ======================================================
 
 function renderInvoicePreview() {
@@ -260,7 +417,7 @@ function renderInvoicePreview() {
     document.querySelectorAll(".item-row").forEach(row => {
         const name = row.querySelector(".item-name").value || "Item / Service";
         const qty = Number(row.querySelector(".item-qty").value) || 0;
-        const price = Number(row.querySelector(".item-price").value) || 0;
+        const price = parseNumericValue(row.querySelector(".item-price").value);
         const total = qty * price;
 
         const tr = document.createElement("tr");
@@ -319,41 +476,159 @@ function renderInvoicePreview() {
     const preview = document.querySelector("#invoicePreview");
     preview.style.display = "block";
 
-    saveInvoiceToStorage();
+    saveInvoiceToServer();
 
     return true;
 }
 
-function saveInvoiceToStorage() {
+async function saveInvoiceToServer() {
+    if (!currentSecretCode) return;
+
     const customerName = document.querySelector("#customerName").value.trim() || "Client";
     const itemsList = Array.from(document.querySelectorAll(".item-row")).map(row => ({
-        name: row.querySelector(".item-name").value || "Item",
+        name: row.querySelector(".item-name").value || "",
         qty: row.querySelector(".item-qty").value,
-        price: row.querySelector(".item-price").value
+        price: parseNumericValue(row.querySelector(".item-price").value)
     }));
 
     const invoiceRecord = {
         invoiceNumber: document.querySelector("#invoiceNumber").value,
+        businessName: document.querySelector("#businessName").value,
+        businessEmail: document.querySelector("#businessEmail").value,
         clientName: customerName,
         clientEmail: document.querySelector("#customerEmail").value,
         date: document.querySelector("#invoiceDate").value,
         dueDate: document.querySelector("#dueDate").value,
+        currencyCode: currencySelect.value,
         items: itemsList,
         total: document.querySelector("#grandTotal").textContent,
+        paymentEnabled: togglePayment.checked,
+        depositPercent: document.querySelector("#depositPercent").value,
+        bankName: document.querySelector("#bankName").value,
+        accountNumber: document.querySelector("#accountNumber").value,
+        accountName: document.querySelector("#accountName").value,
+        notes: document.querySelector("#invoiceNotes").value,
         savedAt: new Date().toISOString()
     };
 
-    const history = JSON.parse(localStorage.getItem("invoices")) || [];
-    
-    const existingIndex = history.findIndex(i => i.invoiceNumber === invoiceRecord.invoiceNumber);
-    if (existingIndex > -1) {
-        history[existingIndex] = invoiceRecord;
-    } else {
-        history.push(invoiceRecord);
+    await fetch("/api/invoices", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-access-code": currentSecretCode
+        },
+        body: JSON.stringify(invoiceRecord)
+    });
+}
+
+// ======================================================
+// INVOICE HISTORY MODAL (VIEW, LOAD, DELETE FROM SERVER)
+// ======================================================
+
+const historyModal = document.querySelector("#historyModal");
+const openHistoryBtn = document.querySelector("#openHistoryBtn");
+const closeHistoryBtn = document.querySelector("#closeHistoryBtn");
+const historyListContainer = document.querySelector("#historyListContainer");
+
+async function renderHistoryList() {
+    const res = await fetch("/api/invoices", {
+        headers: { "x-access-code": currentSecretCode }
+    });
+    const history = await res.json();
+
+    if (history.length === 0) {
+        historyListContainer.innerHTML = `<p style="color:#64748b; font-size:13px; text-align:center; padding:20px 0;">No saved invoices found for this PIN yet. Click Preview, Send, or Download to save an invoice.</p>`;
+        return;
     }
 
-    localStorage.setItem("invoices", JSON.stringify(history));
+    historyListContainer.innerHTML = "";
+    history.forEach((inv, index) => {
+        const card = document.createElement("div");
+        card.className = "history-card-item";
+        card.innerHTML = `
+            <div class="history-card-info">
+                <h4>${inv.invoiceNumber} — ${inv.clientName}</h4>
+                <p>${inv.date || "No date"} • <strong>${inv.total}</strong></p>
+            </div>
+            <div class="history-card-actions">
+                <button type="button" class="btn-hist-load" data-index="${index}">Load</button>
+                <button type="button" class="btn-hist-del" data-num="${encodeURIComponent(inv.invoiceNumber)}">Delete</button>
+            </div>
+        `;
+        historyListContainer.appendChild(card);
+    });
 }
+
+openHistoryBtn.addEventListener("click", () => {
+    renderHistoryList();
+    historyModal.style.display = "flex";
+});
+
+closeHistoryBtn.addEventListener("click", () => {
+    historyModal.style.display = "none";
+});
+
+historyModal.addEventListener("click", (e) => {
+    if (e.target === historyModal) historyModal.style.display = "none";
+});
+
+historyListContainer.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("btn-hist-load")) {
+        const res = await fetch("/api/invoices", {
+            headers: { "x-access-code": currentSecretCode }
+        });
+        const history = await res.json();
+        const idx = Number(e.target.getAttribute("data-index"));
+        const inv = history[idx];
+        if (!inv) return;
+
+        document.querySelector("#invoiceNumber").value = inv.invoiceNumber || "";
+        document.querySelector("#businessName").value = inv.businessName || "";
+        document.querySelector("#businessEmail").value = inv.businessEmail || "";
+        document.querySelector("#customerName").value = inv.clientName || "";
+        document.querySelector("#customerEmail").value = inv.clientEmail || "";
+        document.querySelector("#invoiceDate").value = inv.date || "";
+        document.querySelector("#dueDate").value = inv.dueDate || "";
+        document.querySelector("#invoiceNotes").value = inv.notes || "";
+
+        if (inv.currencyCode) {
+            setCurrencyByCode(inv.currencyCode, false);
+        }
+
+        itemsContainer.innerHTML = "";
+        if (inv.items && inv.items.length > 0) {
+            inv.items.forEach(item => createItemRow(item.name, item.qty, item.price));
+        } else {
+            createItemRow();
+        }
+
+        if (inv.paymentEnabled) {
+            togglePayment.checked = true;
+            paymentMethodBlock.style.display = "block";
+            document.querySelector("#depositPercent").value = inv.depositPercent || 50;
+            document.querySelector("#bankName").value = inv.bankName || "";
+            document.querySelector("#accountNumber").value = inv.accountNumber || "";
+            document.querySelector("#accountName").value = inv.accountName || "";
+        }
+
+        calculateTotals();
+        historyModal.style.display = "none";
+        renderInvoicePreview();
+    }
+
+    if (e.target.classList.contains("btn-hist-del")) {
+        const encodedNum = e.target.getAttribute("data-num");
+        await fetch(`/api/invoices/${encodedNum}`, {
+            method: "DELETE",
+            headers: { "x-access-code": currentSecretCode }
+        });
+        renderHistoryList();
+    }
+});
+
+// ======================================================
+// EXPORT & PRINT ACTIONS
+// ======================================================
 
 function getExportFilename() {
     const rawClient = document.querySelector("#customerName").value.trim() || "Client";
@@ -371,10 +646,6 @@ form.addEventListener("submit", (e) => {
         document.querySelector("#invoicePreview").scrollIntoView({ behavior: "smooth" });
     }
 });
-
-// ======================================================
-// SEND INVOICE & DOWNLOAD ACTIONS
-// ======================================================
 
 document.querySelector("#sendInvoiceBtn").addEventListener("click", () => {
     if (renderInvoicePreview()) {

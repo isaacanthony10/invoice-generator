@@ -1,0 +1,28 @@
+[
+  {
+    "invoiceNumber": "Invoice #001",
+    "businessName": "isaac",
+    "businessEmail": "isaacdummy22@gmail.com",
+    "clientName": "ANTHONY-WILLIAMS, MFONABASI ISAAC",
+    "clientEmail": "",
+    "date": "2026-11-22",
+    "dueDate": "",
+    "currencyCode": "NGN",
+    "items": [
+      {
+        "name": "logo",
+        "qty": "1",
+        "price": "160000000"
+      }
+    ],
+    "total": "₦160,000,000.00",
+    "paymentEnabled": false,
+    "depositPercent": "50",
+    "bankName": "",
+    "accountNumber": "",
+    "accountName": "",
+    "notes": "",
+    "savedAt": "2026-11-22T08:21:55.934Z",
+    "secretCode": "180506"
+  }
+]
