@@ -157,6 +157,11 @@ body {
     margin-bottom: 25px;
 }
 
+/* Hide mobile currency bar on desktop */
+.mobile-currency-bar {
+    display: none;
+}
+
 .table-head {
     display: grid;
     grid-template-columns: 2fr 70px 140px 100px 40px;
@@ -464,6 +469,18 @@ input:checked + .slider:before { transform: translateX(16px); }
     }
     .form-sheet {
         padding: 30px 15px;
+    }
+    .mobile-currency-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
     }
     .table-head {
         display: none;

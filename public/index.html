@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Generator</title>
-    <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="receipt.png">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -62,6 +62,14 @@
 
                     <!-- TABLE HEADERS WITH INTEGRATED CURRENCY PILL -->
                     <div class="items-table">
+                        <!-- MOBILE CURRENCY BAR (Visible only on mobile) -->
+                        <div class="mobile-currency-bar">
+                            <span>Currency:</span>
+                            <div class="currency-pill-wrap">
+                                <select id="mobileCurrencySelect" class="currency-pill-select"></select>
+                            </div>
+                        </div>
+
                         <div class="table-head">
                             <span class="col-item">ITEM</span>
                             <span class="col-qty">QTY</span>

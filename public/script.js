@@ -2,6 +2,7 @@ const form = document.querySelector("#invoiceForm");
 const itemsContainer = document.querySelector("#itemsContainer");
 const addItemBtn = document.querySelector("#addItem");
 const currencySelect = document.querySelector("#currencySelect");
+const mobileCurrencySelect = document.querySelector("#mobileCurrencySelect");
 
 // TOGGLES
 const togglePayment = document.querySelector("#togglePayment");
@@ -76,14 +77,17 @@ const worldCurrencies = [
 ];
 
 function populateCurrencies() {
-    currencySelect.innerHTML = "";
-    worldCurrencies.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c.code;
-        opt.setAttribute("data-symbol", c.symbol);
-        opt.setAttribute("data-rate", c.rate);
-        opt.textContent = c.name;
-        currencySelect.appendChild(opt);
+    [currencySelect, mobileCurrencySelect].forEach(selectEl => {
+        if (!selectEl) return;
+        selectEl.innerHTML = "";
+        worldCurrencies.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c.code;
+            opt.setAttribute("data-symbol", c.symbol);
+            opt.setAttribute("data-rate", c.rate);
+            opt.textContent = c.name;
+            selectEl.appendChild(opt);
+        });
     });
 }
 
@@ -93,13 +97,17 @@ populateCurrencies();
 document.querySelector("#invoiceDate").valueAsDate = new Date();
 
 // ======================================================
-// CURRENCY CHANGE & AUTOMATIC PRICE CONVERSION
+// CURRENCY CHANGE & AUTOMATIC PRICE CONVERSION (DESKTOP + MOBILE)
 // ======================================================
 
-currencySelect.addEventListener("change", (e) => {
+function handleCurrencyChange(e) {
     const selectedOption = e.target.options[e.target.selectedIndex];
+    const newCode = selectedOption.value;
     const newSymbol = selectedOption.getAttribute("data-symbol");
     const newRate = Number(selectedOption.getAttribute("data-rate")) || 1;
+
+    if (currencySelect) currencySelect.value = newCode;
+    if (mobileCurrencySelect) mobileCurrencySelect.value = newCode;
 
     document.querySelectorAll(".item-price").forEach(input => {
         const currentVal = parseFloat(input.value);
@@ -118,7 +126,12 @@ currencySelect.addEventListener("change", (e) => {
     });
 
     calculateTotals();
-});
+}
+
+currencySelect.addEventListener("change", handleCurrencyChange);
+if (mobileCurrencySelect) {
+    mobileCurrencySelect.addEventListener("change", handleCurrencyChange);
+}
 
 function formatMoney(amount) {
     return `${activeSymbol}${Number(amount).toLocaleString("en-US", {
