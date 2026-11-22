@@ -14,16 +14,11 @@
             <!-- LEFT MAIN FORM SHEET -->
             <div class="form-sheet">
                 
-                <!-- TOP LOGO UPLOAD ICON -->
+                <!-- TOP BRAND LOGO ICON -->
                 <div class="logo-upload-wrapper">
-                    <label for="logoInput" class="logo-circle">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M175 12a5 5 0 0 0-8.5-3.5A7 7 0 1 0 5 16h12a5 5 0 0 0 0-10z"></path>
-                            <polyline points="16 16 12 12 8 16"></polyline>
-                            <line x1="12" y1="12" x2="12" y2="21"></line>
-                        </svg>
-                    </label>
-                    <input type="file" id="logoInput" accept="image/*" style="display: none;">
+                    <div class="logo-circle">
+                        <img id="brandLogo" src="https://api.iconify.design/lucide:file-text.svg?color=%231d61e8" alt="Logo" width="24" height="24">
+                    </div>
                 </div>
 
                 <form id="invoiceForm">
@@ -31,14 +26,14 @@
                     <div class="meta-header-row">
                         <div class="meta-item">
                             <span class="meta-label">Date:</span>
-                            <input type="text" id="invoiceDate" value="03/14/2026">
+                            <input type="date" id="invoiceDate">
                         </div>
                         <div class="invoice-title-block">
                             <input type="text" id="invoiceNumber" class="invoice-num-input" value="Invoice #001">
                         </div>
                         <div class="meta-item text-right">
                             <span class="meta-label">Due date:</span>
-                            <input type="text" id="dueDate" placeholder="Select date...">
+                            <input type="date" id="dueDate">
                         </div>
                     </div>
 
@@ -46,22 +41,27 @@
                     <div class="bill-columns">
                         <div class="bill-col">
                             <h4>Bill from</h4>
-                            <input type="email" id="businessEmail" placeholder="Email" class="light-input">
-                            <textarea id="businessName" placeholder="Who is this invoice from?" class="light-input area-sm"></textarea>
+                            <input type="text" id="businessName" placeholder="Who is this invoice from?" class="light-input">
+                            <input type="email" id="businessEmail" placeholder="Email (optional)" class="light-input">
                         </div>
                         <div class="bill-col">
                             <h4>Bill to</h4>
-                            <input type="email" id="customerEmail" placeholder="Email" class="light-input">
-                            <textarea id="customerName" placeholder="Who is this invoice to?" class="light-input area-sm"></textarea>
+                            <input type="text" id="customerName" placeholder="Client's Name" class="light-input">
+                            <input type="email" id="customerEmail" placeholder="Email (optional)" class="light-input">
                         </div>
                     </div>
 
-                    <!-- TABLE HEADERS -->
+                    <!-- TABLE HEADERS WITH INTEGRATED CURRENCY PILL -->
                     <div class="items-table">
                         <div class="table-head">
                             <span class="col-item">ITEM</span>
                             <span class="col-qty">QTY</span>
-                            <span class="col-rate">RATE</span>
+                            <span class="col-rate flex-header">
+                                RATE
+                                <div class="currency-pill-wrap">
+                                    <select id="currencySelect" class="currency-pill-select"></select>
+                                </div>
+                            </span>
                             <span class="col-total">TOTAL</span>
                             <span class="col-action">ACTION</span>
                         </div>
@@ -81,12 +81,16 @@
                         <div class="summary-line link-line">
                             <button type="button" class="btn-text-link" id="toggleDiscountBtn">+ Add discount</button>
                         </div>
+                        <div class="summary-line discount-input-row" id="discountRow" style="display:none;">
+                            <span class="summary-label">Discount (%)</span>
+                            <input type="number" id="discountRate" value="0" min="0" max="100" class="mini-num-input">
+                        </div>
                         <div class="summary-line link-line">
                             <button type="button" class="btn-text-link" id="toggleTaxBtn">+ Add tax</button>
                         </div>
                         <div class="summary-line tax-input-row" id="taxRow" style="display:none;">
                             <span class="summary-label">Tax (%)</span>
-                            <input type="number" id="taxRate" value="0" class="mini-num-input">
+                            <input type="number" id="taxRate" value="0" min="0" class="mini-num-input">
                         </div>
                         <div class="summary-line total-line">
                             <strong>Total</strong>
@@ -94,10 +98,33 @@
                         </div>
                     </div>
 
+                    <!-- OPTIONAL PAYMENT METHOD & DEPOSIT BLOCK -->
+                    <div class="notes-block" id="paymentMethodBlock" style="display:none;">
+                        <h4>Payment Details & Terms</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Initial Payment (%)</label>
+                                <input type="number" id="depositPercent" value="50" min="0" max="100" class="light-input" style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Bank Name</label>
+                                <input type="text" id="bankName" placeholder="Bank Name (e.g. Moniepoint)" class="light-input" style="margin:0;">
+                            </div>
+                        </div>
+                        <input type="text" id="accountNumber" placeholder="Account Number (e.g. 7041134383)" class="light-input">
+                        <input type="text" id="accountName" placeholder="Account Name (e.g. Adekunle Adekola)" class="light-input">
+                    </div>
+
+                    <!-- OPTIONAL LATE FEES BLOCK -->
+                    <div class="notes-block" id="lateFeesBlock" style="display:none;">
+                        <h4>Late Fees Policy</h4>
+                        <input type="text" id="lateFeesPolicy" placeholder="e.g. 5% late fee per week after due date" class="light-input">
+                    </div>
+
                     <!-- NOTES -->
-                    <div class="notes-block">
+                    <div class="notes-block" id="notesBlock">
                         <h4>Notes</h4>
-                        <textarea id="invoiceNotes" class="light-input" placeholder="Thanks for your business!"></textarea>
+                        <textarea id="invoiceNotes" class="light-input area-sm" placeholder="Thanks for your business!"></textarea>
                     </div>
                 </form>
             </div>
@@ -105,25 +132,13 @@
             <!-- RIGHT SIDEBAR PANEL -->
             <div class="sidebar-panel">
                 <div class="top-actions">
-                    <button type="button" class="btn-blue-primary">
+                    <button type="button" id="sendInvoiceBtn" class="btn-blue-primary">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                         Send Invoice
                     </button>
                     <div class="btn-row-dual">
                         <button type="submit" form="invoiceForm" class="btn-white-secondary">Preview</button>
                         <button type="button" id="downloadPDF" class="btn-white-secondary">Download</button>
-                    </div>
-                </div>
-
-                <div class="sidebar-group">
-                    <label class="sidebar-label">Currency</label>
-                    <div class="select-wrapper">
-                        <select id="currencySelect" class="sidebar-select">
-                            <option value="USD" data-symbol="$">🇺🇸 USD (United States Dollar)</option>
-                            <option value="NGN" data-symbol="₦">🇳🇬 NGN (Nigerian Naira)</option>
-                            <option value="EUR" data-symbol="€">🇪🇺 EUR (Euro)</option>
-                            <option value="GBP" data-symbol="£">🇬🇧 GBP (British Pound)</option>
-                        </select>
                     </div>
                 </div>
 
@@ -155,24 +170,28 @@
         </div>
     </div>
 
-    <!-- PREVIEW AREA (RENDERED ON PREVIEW/SUBMIT) -->
+    <!-- PREVIEW AREA -->
     <div id="invoicePreview" class="document-preview-wrap">
         <div class="document-sheet">
             <div class="doc-header">
                 <h1>INVOICE</h1>
-                <p id="previewServiceHeader">Professional Design Services</p>
+                <p id="previewServiceHeader">Official Payment Invoice</p>
             </div>
 
             <div class="doc-info-grid">
                 <div class="doc-info-box">
                     <div class="doc-box-title">Invoice To</div>
-                    <div class="doc-box-content" id="previewCustomerName">Customer Name</div>
+                    <div class="doc-box-content">
+                        <p><strong id="previewCustomerName">Customer Name</strong></p>
+                        <p id="previewCustomerEmail" style="color:#666;"></p>
+                    </div>
                 </div>
                 <div class="doc-info-box">
                     <div class="doc-box-title">Invoice Details</div>
                     <div class="doc-box-content">
                         <p><strong>Invoice No.:</strong> <span id="previewInvoiceNumber">#001</span></p>
-                        <p><strong>Date:</strong> <span id="previewInvoiceDate">03/14/2026</span></p>
+                        <p><strong>Date:</strong> <span id="previewInvoiceDate">---</span></p>
+                        <p><strong>Due Date:</strong> <span id="previewDueDate">---</span></p>
                     </div>
                 </div>
             </div>
@@ -183,17 +202,47 @@
                     <thead>
                         <tr>
                             <th>Description</th>
+                            <th class="text-right">Qty</th>
+                            <th class="text-right">Rate</th>
                             <th class="text-right">Amount</th>
                         </tr>
                     </thead>
                     <tbody id="previewItems"></tbody>
                 </table>
                 <div class="doc-table-total">
+                    <p>Subtotal: <span id="previewSubtotal">$0.00</span></p>
+                    <p id="previewDiscountRow" style="display:none;">Discount: <span id="previewDiscount">-$0.00</span></p>
+                    <p id="previewTaxRow" style="display:none;">Tax: <span id="previewTax">$0.00</span></p>
                     <strong>Total: <span id="previewGrandTotal">$0.00</span></strong>
                 </div>
             </div>
 
-            <div class="doc-section">
+            <!-- PREVIEW: EXACT PAYMENT TERMS BOX -->
+            <div class="doc-section" id="previewPaymentSection" style="display:none;">
+                <h3>Payment Terms</h3>
+                <div class="payment-terms-box">
+                    <p style="margin-bottom: 4px;">
+                        <strong id="previewDepositHeading">50% Initial Payment Required: $0.00</strong>
+                    </p>
+                    <p id="previewDepositSubtext" style="color: #444; margin-bottom: 15px;">
+                        The remaining balance is payable upon completion of the agreed project/service.
+                    </p>
+
+                    <div class="payment-account-details">
+                        <p style="margin-bottom: 4px;"><strong>Payment Account</strong></p>
+                        <p>Account Number: <span id="previewAccountNumber">---</span></p>
+                        <p>Bank: <span id="previewBankName">---</span></p>
+                        <p>Account Name: <span id="previewAccountName">---</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section" id="previewLateFeesSection" style="display:none;">
+                <h3>Late Fees Policy</h3>
+                <p id="previewLateFees" style="font-size:12px; color:#444;"></p>
+            </div>
+
+            <div class="doc-section" id="previewNotesSection">
                 <h3>Notes</h3>
                 <div id="previewInvoiceNotes" class="doc-notes-list">Thanks for your business!</div>
             </div>

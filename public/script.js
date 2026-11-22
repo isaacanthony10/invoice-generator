@@ -2,71 +2,103 @@ const form = document.querySelector("#invoiceForm");
 const itemsContainer = document.querySelector("#itemsContainer");
 const addItemBtn = document.querySelector("#addItem");
 const currencySelect = document.querySelector("#currencySelect");
-const clientPresetSelect = document.querySelector("#clientPresetSelect");
-const saveClientPresetBtn = document.querySelector("#saveClientPresetBtn");
 
-let activeCurrency = { code: "NGN", symbol: "₦" };
+// TOGGLES
+const togglePayment = document.querySelector("#togglePayment");
+const toggleLateFees = document.querySelector("#toggleLateFees");
+const toggleNotes = document.querySelector("#toggleNotes");
+
+const paymentMethodBlock = document.querySelector("#paymentMethodBlock");
+const lateFeesBlock = document.querySelector("#lateFeesBlock");
+const notesBlock = document.querySelector("#notesBlock");
+
+const toggleTaxBtn = document.querySelector("#toggleTaxBtn");
+const taxRow = document.querySelector("#taxRow");
+const toggleDiscountBtn = document.querySelector("#toggleDiscountBtn");
+const discountRow = document.querySelector("#discountRow");
+
+let activeSymbol = "$";
 
 // ======================================================
-// INITIALIZATION & EDIT STATE
+// WORLD CURRENCIES LIST
 // ======================================================
 
-const editingInvoiceIndex = localStorage.getItem("editingInvoiceIndex");
-const editingInvoice = JSON.parse(localStorage.getItem("editingInvoice"));
+const worldCurrencies = [
+    { code: "USD", symbol: "$", name: "USD ($)" },
+    { code: "NGN", symbol: "₦", name: "NGN (₦)" },
+    { code: "EUR", symbol: "€", name: "EUR (€)" },
+    { code: "GBP", symbol: "£", name: "GBP (£)" },
+    { code: "CAD", symbol: "CA$", name: "CAD (CA$)" },
+    { code: "AUD", symbol: "A$", name: "AUD (A$)" },
+    { code: "JPY", symbol: "¥", name: "JPY (¥)" },
+    { code: "INR", symbol: "₹", name: "INR (₹)" },
+    { code: "CNY", symbol: "¥", name: "CNY (¥)" },
+    { code: "ZAR", symbol: "R", name: "ZAR (R)" },
+    { code: "GHS", symbol: "GH₵", name: "GHS (GH₵)" },
+    { code: "KES", symbol: "KSh", name: "KES (KSh)" },
+    { code: "AED", symbol: "AED", name: "AED" },
+    { code: "SAR", symbol: "SR", name: "SAR (SR)" }
+];
 
-function generateInvoiceNumber() {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const randomNumber = Math.floor(100 + Math.random() * 900);
-    return `INV-${year}${month}${day}-${randomNumber}`;
+function populateCurrencies() {
+    currencySelect.innerHTML = "";
+    worldCurrencies.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.code;
+        opt.setAttribute("data-symbol", c.symbol);
+        opt.textContent = c.name;
+        currencySelect.appendChild(opt);
+    });
 }
 
-if (!editingInvoice) {
-    document.querySelector("#invoiceNumber").value = generateInvoiceNumber();
-    document.querySelector("#invoiceDate").valueAsDate = new Date();
-}
+populateCurrencies();
+
+// Set Today's Date by default
+document.querySelector("#invoiceDate").valueAsDate = new Date();
 
 // ======================================================
-// CURRENCY & FORMATTING
+// CURRENCY CHANGE EVENT
 // ======================================================
 
 currencySelect.addEventListener("change", (e) => {
     const selectedOption = e.target.options[e.target.selectedIndex];
-    activeCurrency.code = selectedOption.value;
-    activeCurrency.symbol = selectedOption.getAttribute("data-symbol");
+    activeSymbol = selectedOption.getAttribute("data-symbol");
+    
+    document.querySelectorAll(".curr-symbol").forEach(el => {
+        el.textContent = activeSymbol;
+    });
+
     calculateTotals();
 });
 
 function formatMoney(amount) {
-    return `${activeCurrency.symbol}${Number(amount).toLocaleString("en-US", {
+    return `${activeSymbol}${Number(amount).toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     })}`;
 }
 
 // ======================================================
-// ITEMS MANAGEMENT
+// DYNAMIC ITEM ROWS
 // ======================================================
 
-function createItemRow(name = "", desc = "", qty = 1, price = 0) {
+function createItemRow(name = "", qty = 1, price = 0) {
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-        <div class="item-desc-col">
-            <input type="text" class="item-name" placeholder="Item / Service Name" value="${name}">
-            <input type="text" class="item-desc" placeholder="Description (optional)" value="${desc}">
-        </div>
         <div>
+            <input type="text" class="item-name light-input" placeholder="Item name / Description" value="${name}" style="margin:0;">
+        </div>
+        <div class="qty-input-box">
             <input type="number" class="item-qty" min="1" value="${qty}">
         </div>
-        <div>
-            <input type="number" class="item-price" min="0" placeholder="0.00" value="${price}">
+        <div class="rate-input-box">
+            <span class="curr-symbol">${activeSymbol}</span>
+            <input type="number" class="item-price" min="0" step="0.01" placeholder="0.00" value="${price}">
         </div>
-        <div class="item-calc-val item-total">${formatMoney(qty * price)}</div>
-        <div style="text-align: right;">
-            <button type="button" class="btn-icon-danger remove-item">×</button>
+        <div class="total-val-box item-total">${formatMoney(qty * price)}</div>
+        <div style="text-align: center;">
+            <button type="button" class="btn-remove-dots remove-item">&times;</button>
         </div>
     `;
     itemsContainer.appendChild(row);
@@ -101,172 +133,202 @@ function calculateTotals() {
         row.querySelector(".item-total").textContent = formatMoney(total);
     });
 
-    const taxRate = Number(document.querySelector("#taxRate").value) || 0;
-    const tax = subtotal * (taxRate / 100);
-    const grandTotal = subtotal + tax;
+    const discountRate = (discountRow.style.display !== "none") ? (Number(document.querySelector("#discountRate").value) || 0) : 0;
+    const discountAmount = subtotal * (discountRate / 100);
+    const subtotalAfterDiscount = subtotal - discountAmount;
+
+    const taxRate = (taxRow.style.display !== "none") ? (Number(document.querySelector("#taxRate").value) || 0) : 0;
+    const taxAmount = subtotalAfterDiscount * (taxRate / 100);
+
+    const grandTotal = subtotalAfterDiscount + taxAmount;
 
     document.querySelector("#subtotal").textContent = formatMoney(subtotal);
-    document.querySelector("#tax").textContent = formatMoney(tax);
     document.querySelector("#grandTotal").textContent = formatMoney(grandTotal);
 }
 
 // ======================================================
-// CLIENT PRESETS
+// SIDEBAR SWITCH TOGGLES & LINK BUTTONS
 // ======================================================
 
-function loadClientPresets() {
-    const presets = JSON.parse(localStorage.getItem("clientPresets")) || [];
-    clientPresetSelect.innerHTML = '<option value="">-- Select Saved Client --</option>';
-    presets.forEach((client, index) => {
-        const opt = document.createElement("option");
-        opt.value = index;
-        opt.textContent = client.name;
-        clientPresetSelect.appendChild(opt);
-    });
-}
-
-saveClientPresetBtn.addEventListener("click", () => {
-    const name = document.querySelector("#customerName").value.trim();
-    const email = document.querySelector("#customerEmail").value.trim();
-    const address = document.querySelector("#customerAddress").value.trim();
-
-    if (!name) return alert("Please enter a customer name to save.");
-
-    const presets = JSON.parse(localStorage.getItem("clientPresets")) || [];
-    presets.push({ name, email, address });
-    localStorage.setItem("clientPresets", JSON.stringify(presets));
-    loadClientPresets();
-    alert("Client preset saved!");
+togglePayment.addEventListener("change", () => {
+    paymentMethodBlock.style.display = togglePayment.checked ? "block" : "none";
 });
 
-clientPresetSelect.addEventListener("change", (e) => {
-    const index = e.target.value;
-    if (index === "") return;
-    const presets = JSON.parse(localStorage.getItem("clientPresets")) || [];
-    const client = presets[index];
-
-    if (client) {
-        document.querySelector("#customerName").value = client.name;
-        document.querySelector("#customerEmail").value = client.email;
-        document.querySelector("#customerAddress").value = client.address;
-    }
+toggleLateFees.addEventListener("change", () => {
+    lateFeesBlock.style.display = toggleLateFees.checked ? "block" : "none";
 });
 
-loadClientPresets();
+toggleNotes.addEventListener("change", () => {
+    notesBlock.style.display = toggleNotes.checked ? "block" : "none";
+});
 
-// Load initial row if empty
-if (!editingInvoice) createItemRow();
+toggleTaxBtn.addEventListener("click", () => {
+    taxRow.style.display = taxRow.style.display === "none" ? "flex" : "none";
+    calculateTotals();
+});
+
+toggleDiscountBtn.addEventListener("click", () => {
+    discountRow.style.display = discountRow.style.display === "none" ? "flex" : "none";
+    calculateTotals();
+});
+
+createItemRow();
 
 // ======================================================
-// GENERATE / PREVIEW INVOICE
+// PREVIEW & SAVE LOGIC
 // ======================================================
 
-form.addEventListener("submit", (e) => {
-    e.preventDefault();
-
+function renderInvoicePreview() {
     const customerName = document.querySelector("#customerName").value.trim();
-    if (!customerName) return alert("Please enter the customer's name.");
+    if (!customerName) {
+        alert("Please enter the client's name.");
+        return false;
+    }
 
-    // Update document preview fields
+    // Fill preview values
     document.querySelector("#previewCustomerName").textContent = customerName;
+    document.querySelector("#previewCustomerEmail").textContent = document.querySelector("#customerEmail").value;
     document.querySelector("#previewInvoiceNumber").textContent = document.querySelector("#invoiceNumber").value;
     document.querySelector("#previewInvoiceDate").textContent = document.querySelector("#invoiceDate").value;
-    document.querySelector("#previewCurrencyText").textContent = `${activeCurrency.code} (${activeCurrency.symbol})`;
+    document.querySelector("#previewDueDate").textContent = document.querySelector("#dueDate").value || "N/A";
 
-    // Items
+    // Items preview
     const previewItems = document.querySelector("#previewItems");
     previewItems.innerHTML = "";
     document.querySelectorAll(".item-row").forEach(row => {
-        const name = row.querySelector(".item-name").value || "Service item";
-        const desc = row.querySelector(".item-desc").value;
+        const name = row.querySelector(".item-name").value || "Item / Service";
         const qty = Number(row.querySelector(".item-qty").value) || 0;
         const price = Number(row.querySelector(".item-price").value) || 0;
         const total = qty * price;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>
-                <strong>${name}</strong>
-                ${desc ? `<br><small style="color:#666;">${desc}</small>` : ''}
-            </td>
+            <td><strong>${name}</strong></td>
+            <td class="text-right">${qty}</td>
+            <td class="text-right">${formatMoney(price)}</td>
             <td class="text-right">${formatMoney(total)}</td>
         `;
         previewItems.appendChild(tr);
     });
 
+    // Totals
+    document.querySelector("#previewSubtotal").textContent = document.querySelector("#subtotal").textContent;
     document.querySelector("#previewGrandTotal").textContent = document.querySelector("#grandTotal").textContent;
-    document.querySelector("#previewBankName").textContent = document.querySelector("#bankName").value || "---";
-    document.querySelector("#previewAccountName").textContent = document.querySelector("#accountName").value || "---";
-    document.querySelector("#previewAccountNumber").textContent = document.querySelector("#accountNumber").value || "---";
-    document.querySelector("#previewTermsText").textContent = document.querySelector("#invoiceTerms").value || "Payment required upon completion.";
-    document.querySelector("#previewInvoiceNotes").textContent = document.querySelector("#invoiceNotes").value || "Thanks for your business.";
+
+    // PAYMENT TERMS & DEPOSIT CALCULATION
+    const previewPaymentSection = document.querySelector("#previewPaymentSection");
+    if (togglePayment.checked) {
+        previewPaymentSection.style.display = "block";
+        
+        const grandTotalText = document.querySelector("#grandTotal").textContent;
+        const numericTotal = parseFloat(grandTotalText.replace(/[^0-9.-]+/g, "")) || 0;
+        const depositPct = Number(document.querySelector("#depositPercent").value) || 50;
+        
+        const depositVal = numericTotal * (depositPct / 100);
+        const remainingVal = numericTotal - depositVal;
+
+        document.querySelector("#previewDepositHeading").textContent = 
+            `${depositPct}% Initial Payment Required: ${formatMoney(depositVal)}`;
+        
+        document.querySelector("#previewDepositSubtext").textContent = 
+            `The remaining ${100 - depositPct}% balance of ${formatMoney(remainingVal)} is payable upon completion of the agreed project/service.`;
+
+        document.querySelector("#previewAccountNumber").textContent = document.querySelector("#accountNumber").value || "---";
+        document.querySelector("#previewBankName").textContent = document.querySelector("#bankName").value || "---";
+        document.querySelector("#previewAccountName").textContent = document.querySelector("#accountName").value || "---";
+    } else {
+        previewPaymentSection.style.display = "none";
+    }
+
+    // Late Fees Section
+    const previewLateFeesSection = document.querySelector("#previewLateFeesSection");
+    if (toggleLateFees.checked) {
+        previewLateFeesSection.style.display = "block";
+        document.querySelector("#previewLateFees").textContent = document.querySelector("#lateFeesPolicy").value || "Late fees apply if paid after due date.";
+    } else {
+        previewLateFeesSection.style.display = "none";
+    }
+
+    // Notes Section
+    const previewNotesSection = document.querySelector("#previewNotesSection");
+    if (toggleNotes.checked) {
+        previewNotesSection.style.display = "block";
+        document.querySelector("#previewInvoiceNotes").textContent = document.querySelector("#invoiceNotes").value || "Thanks for your business!";
+    } else {
+        previewNotesSection.style.display = "none";
+    }
 
     const preview = document.querySelector("#invoicePreview");
     preview.style.display = "block";
-    preview.scrollIntoView({ behavior: "smooth" });
-});
 
-// ======================================================
-// SAVE INVOICE (LOCAL STORAGE)
-// ======================================================
+    saveInvoiceToStorage();
 
-document.querySelector("#saveInvoice").addEventListener("click", () => {
-    const invoiceData = {
+    return true;
+}
+
+function saveInvoiceToStorage() {
+    const customerName = document.querySelector("#customerName").value.trim() || "Client";
+    const itemsList = Array.from(document.querySelectorAll(".item-row")).map(row => ({
+        name: row.querySelector(".item-name").value || "Item",
+        qty: row.querySelector(".item-qty").value,
+        price: row.querySelector(".item-price").value
+    }));
+
+    const invoiceRecord = {
         invoiceNumber: document.querySelector("#invoiceNumber").value,
-        invoiceDate: document.querySelector("#invoiceDate").value,
+        clientName: customerName,
+        clientEmail: document.querySelector("#customerEmail").value,
+        date: document.querySelector("#invoiceDate").value,
         dueDate: document.querySelector("#dueDate").value,
-        currency: activeCurrency,
-        business: {
-            name: document.querySelector("#businessName").value,
-            email: document.querySelector("#businessEmail").value,
-            phone: document.querySelector("#businessPhone").value,
-            address: document.querySelector("#businessAddress").value
-        },
-        customer: {
-            name: document.querySelector("#customerName").value,
-            email: document.querySelector("#customerEmail").value,
-            address: document.querySelector("#customerAddress").value
-        },
-        payment: {
-            bankName: document.querySelector("#bankName").value,
-            accountName: document.querySelector("#accountName").value,
-            accountNumber: document.querySelector("#accountNumber").value
-        },
-        notes: document.querySelector("#invoiceNotes").value,
-        terms: document.querySelector("#invoiceTerms").value,
-        taxRate: document.querySelector("#taxRate").value,
-        items: Array.from(document.querySelectorAll(".item-row")).map(row => ({
-            name: row.querySelector(".item-name").value,
-            desc: row.querySelector(".item-desc").value,
-            quantity: row.querySelector(".item-qty").value,
-            price: row.querySelector(".item-price").value
-        })),
+        items: itemsList,
         total: document.querySelector("#grandTotal").textContent,
         savedAt: new Date().toISOString()
     };
 
-    const savedInvoices = JSON.parse(localStorage.getItem("invoices")) || [];
-
-    if (editingInvoiceIndex !== null) {
-        savedInvoices[Number(editingInvoiceIndex)] = invoiceData;
-        localStorage.removeItem("editingInvoice");
-        localStorage.removeItem("editingInvoiceIndex");
+    const history = JSON.parse(localStorage.getItem("invoices")) || [];
+    
+    const existingIndex = history.findIndex(i => i.invoiceNumber === invoiceRecord.invoiceNumber);
+    if (existingIndex > -1) {
+        history[existingIndex] = invoiceRecord;
     } else {
-        savedInvoices.push(invoiceData);
+        history.push(invoiceRecord);
     }
 
-    localStorage.setItem("invoices", JSON.stringify(savedInvoices));
-    alert("Invoice saved successfully!");
-    window.location.href = "/history.html";
+    localStorage.setItem("invoices", JSON.stringify(history));
+}
+
+function getExportFilename() {
+    const rawClient = document.querySelector("#customerName").value.trim() || "Client";
+    const clientSanitized = rawClient.replace(/[^a-zA-Z0-9]/g, "_");
+    
+    const firstItem = document.querySelectorAll(".item-name")[0]?.value.trim() || "Invoice";
+    const itemSanitized = firstItem.replace(/[^a-zA-Z0-9]/g, "_");
+
+    return `Invoice_${clientSanitized}_${itemSanitized}`;
+}
+
+form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (renderInvoicePreview()) {
+        document.querySelector("#invoicePreview").scrollIntoView({ behavior: "smooth" });
+    }
 });
 
 // ======================================================
-// DOWNLOAD PDF
+// SEND INVOICE & DOWNLOAD ACTIONS
 // ======================================================
+
+document.querySelector("#sendInvoiceBtn").addEventListener("click", () => {
+    if (renderInvoicePreview()) {
+        window.print();
+    }
+});
 
 document.querySelector("#downloadPDF").addEventListener("click", async () => {
     const preview = document.querySelector("#invoicePreview");
-    if (preview.style.display === "none") return alert("Please generate the invoice first.");
+    if (preview.style.display === "none") {
+        if (!renderInvoicePreview()) return;
+    }
 
     try {
         const sheet = document.querySelector(".document-sheet");
@@ -278,42 +340,9 @@ document.querySelector("#downloadPDF").addEventListener("click", async () => {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`${document.querySelector("#invoiceNumber").value}.pdf`);
+        pdf.save(`${getExportFilename()}.pdf`);
     } catch (err) {
         console.error(err);
         alert("Error generating PDF.");
     }
 });
-
-// ======================================================
-// EDIT MODE LOAD
-// ======================================================
-
-if (editingInvoice) {
-    document.querySelector("#invoiceNumber").value = editingInvoice.invoiceNumber || "";
-    document.querySelector("#invoiceDate").value = editingInvoice.invoiceDate || "";
-    document.querySelector("#dueDate").value = editingInvoice.dueDate || "";
-    document.querySelector("#businessName").value = editingInvoice.business?.name || "";
-    document.querySelector("#businessEmail").value = editingInvoice.business?.email || "";
-    document.querySelector("#businessPhone").value = editingInvoice.business?.phone || "";
-    document.querySelector("#businessAddress").value = editingInvoice.business?.address || "";
-    document.querySelector("#customerName").value = editingInvoice.customer?.name || "";
-    document.querySelector("#customerEmail").value = editingInvoice.customer?.email || "";
-    document.querySelector("#customerAddress").value = editingInvoice.customer?.address || "";
-    document.querySelector("#bankName").value = editingInvoice.payment?.bankName || "";
-    document.querySelector("#accountName").value = editingInvoice.payment?.accountName || "";
-    document.querySelector("#accountNumber").value = editingInvoice.payment?.accountNumber || "";
-    document.querySelector("#invoiceNotes").value = editingInvoice.notes || "";
-    document.querySelector("#invoiceTerms").value = editingInvoice.terms || "";
-    document.querySelector("#taxRate").value = editingInvoice.taxRate || 0;
-
-    if (editingInvoice.currency) {
-        currencySelect.value = editingInvoice.currency.code;
-        activeCurrency = editingInvoice.currency;
-    }
-
-    itemsContainer.innerHTML = "";
-    editingInvoice.items?.forEach(item => {
-        createItemRow(item.name, item.desc, item.quantity, item.price);
-    });
-}
